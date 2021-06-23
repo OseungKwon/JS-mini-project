@@ -1,0 +1,72 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>ONOS Topology Viewer</title>
+    <style type="text/css">
+        #mynetwork {
+            width: 600px;
+            height: 600px;
+            border: 1px solid lightgray;
+        }
+    </style>
+    <?php include "call_api.php";?>
+    <script type="text/javascript" src="./js/vis.min.js"></script>
+    <?php
+		$onos_ip = "127.0.0.1";
+		$onos_port = "8181";
+		$url = "http://$onos_ip:$onos_port/onos/v1/devices";
+		$onos_switch_data = CallAPI($url);
+		$size_onos_switch=count($onos_switch_data["devices"]);
+		$url = "http://$onos_ip:$onos_port/onos/v1/hosts";
+		$switch_host_data=CallAPI($url);
+		$size_switch_host=count($switch_host_data["hosts"]);
+	?>
+    <script type="text/javascript">
+        var nodes = null;
+        var edges = null;
+        var network = null;
+
+        var DIR = '../img/';
+        var EDGE_LENGTH = 150;
+
+        function draw() {
+            nodes = [];
+            edges = [];
+            nodes.push({ id: "<?=$onos_ip;?>", label: "SDN Controller\n(<?=$onos_ip;?>)", image: DIR + 'sdn_c.png', shape: 'image' });
+
+			<? php
+			for ($i = 0; $i < $size_onos_switch; $i++) {
+                if ($onos_switch_data['devices'][$i]['available'] == true) {
+			?>
+                        nodes.push({ id: "<?=$onos_switch_data['devices'][$i]['id'];?>", label: "<?=$onos_switch_data['devices'][$i]['id'];?>", image: DIR + 'switch.png', shape: 'image' });
+                    edges.push({ from: "<?=$onos_switch_data['devices'][$i]['id'];?>", to: "<?=$onos_ip;?>", length: EDGE_LENGTH });
+					<? php
+				}
+            }
+            for ($i = 0; $i < $size_switch_host; $i++) {
+				?>
+                    nodes.push({ id: "<?=$switch_host_data['hosts'][$i]['mac'];?>", label: "<?=$switch_host_data['hosts'][$i]['mac'];?>\n<?=$switch_host_data['hosts'][$i]['ipAddresses'][0];?>", image: DIR + 'host.png', shape: 'image' });
+                edges.push({ from: "<?=$switch_host_data['hosts'][$i]['locations'][0]['elementId'];?>", to: "<?=$switch_host_data['hosts'][$i]['mac'];?>", length: EDGE_LENGTH });
+				<? php
+			}
+			?>
+
+			var container = document.getElementById('mynetwork');
+            var data = {
+                nodes: nodes,
+                edges: edges
+            };
+            var options = {};
+            network = new vis.Network(container, data, options);
+        }
+    </script>
+</head>
+
+<body onLoad="draw()">
+    <p>ONOS Topology Viewer</p>
+    <div id="mynetwork"></div>
+</body>
+
+</html>
